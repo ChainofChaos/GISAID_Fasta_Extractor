@@ -17,7 +17,7 @@ std::vector<std::string> splitString(const std::string &text, char delim) {
 }
 
 int main() {
-    std::ifstream fastaFile(R"(D:\source\Python\Gisaid\spikeprot0628\spikeprot0628.fasta)");
+    std::ifstream fastaFile(R"(D:\source\Cpp\GISAID_Fasta_Extractor\test.fasta)");
     std::string textFile;
     std::map<std::string, std::map<std::string, int>> count;
     std::vector<std::string> countries;
@@ -35,7 +35,7 @@ int main() {
                 isHuman = true;
                 date = splittedString[2];
                 country = splitString(splittedString[1], '/')[1];
-                if (std::find(countries.begin(), countries.end(), country) != countries.end()) {
+                if (std::find(countries.begin(), countries.end(), country) == countries.end()) {
                     countries.push_back(country);
                 }
                 header = textFile;
@@ -45,22 +45,31 @@ int main() {
                 }
                 sequence = textFile;
                 count[date.substr(0, date.find_last_of('-'))][country] += 1;
-//                for (auto const& [key,val] : count){
-//                    for (auto const& [country, counts] : val){
-//                        std::cout << "Key : " << key << " Country: " << country << " Counts : " << counts << std::endl;
-//                    }
-//                }
                 std::ofstream outCountryFastaFile("Countries/" + country + ".fasta", std::ios_base::app);
                 outCountryFastaFile << header << '\n';
                 outCountryFastaFile << sequence << '\n';
             }
         }
     }
-    std::ofstream outCount("DateCount.csv");
-    outCount << "date,count\n";
-
-//    for (auto const &[key, val]: count) {
-//        outCount << key << ',' << val << '\n';
-//    }
+    std::ofstream outCount("gisaid_monthly.csv");
+    // Write headers
+    for (auto const &[key, val]: count) {
+        outCount << ',' + key;
+    }
+    outCount << '\n';
+    // Write the countries count based on the date
+    std::sort(countries.begin(), countries.end());
+    for (const auto &country: countries) {
+        outCount << country;
+        for (auto const &[key, val]: count) {
+            auto pos = val.find(country);
+            if (pos == val.end()) {
+                outCount << ",0";
+            } else {
+                outCount << ',' + std::to_string(pos->second);
+            }
+        }
+        outCount << '\n';
+    }
     return 0;
 }
