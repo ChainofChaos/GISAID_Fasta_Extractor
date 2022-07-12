@@ -24,19 +24,20 @@ int main() {
         std::string header, sequence, country;
         while (std::getline(fastaFile, textFile)) {
             if (textFile[0] == '>') {
-                if (splitString(textFile, '|')[6] != "Human") {
+                std::vector<std::string> splittedString = splitString(textFile, '|');
+                if (splittedString[6] != "Human" || splitString(splittedString[2], '-')[1] == "00") {
                     isHuman = false;
                     continue;
                 }
                 isHuman = true;
-                country = splitString(textFile, '/')[1];
+                country = splitString(splittedString[1], '/')[1];
                 header = textFile;
             } else {
                 if (!isHuman) {
                     continue;
                 }
                 sequence = textFile;
-                std::ofstream outCountryFastaFile("Countries/"+country + ".fasta", std::ios_base::app);
+                std::ofstream outCountryFastaFile("Countries/" + country + ".fasta", std::ios_base::app);
                 outCountryFastaFile << header << '\n';
                 outCountryFastaFile << sequence << '\n';
             }
