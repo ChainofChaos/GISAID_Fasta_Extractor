@@ -1,3 +1,4 @@
+#include <argparse/argparse.hpp>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,8 +17,20 @@ std::vector<std::string> splitString(const std::string &text, char delim) {
     return splits;
 }
 
-int main() {
-    std::ifstream fastaFile(R"(D:\source\Cpp\GISAID_Fasta_Extractor\test.fasta)");
+int main(int argc, char *argv[]) {
+    argparse::ArgumentParser program("GISAID_Fasta_Extractor");
+    program.add_argument("fastafile")
+            .help("Specify the path of fasta file input")
+            .required();
+    try {
+        program.parse_args(argc, argv);
+    }
+    catch (const std::runtime_error &err) {
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+    std::ifstream fastaFile(program.get<std::string>("fastafile"));
     std::string textFile;
     std::map<std::string, std::map<std::string, int>> count;
     std::vector<std::string> countries;
@@ -50,6 +63,8 @@ int main() {
                 outCountryFastaFile << sequence << '\n';
             }
         }
+    } else {
+        throw std::invalid_argument("File doesn't exist or access is denied. Please check your input.");
     }
     std::ofstream outCount("gisaid_monthly.csv");
     // Write headers
