@@ -35,9 +35,11 @@ int main(int argc, char *argv[]) {
     std::map<std::string, std::map<std::string, int>> count;
     std::vector<std::string> countries;
     std::filesystem::create_directory("Countries");
+    std::filesystem::create_directory("Proteins");
     if (fastaFile.is_open()) {
         bool isHuman = true;
-        std::string header, sequence, country, date;
+        std::string header, protein, id, sequence, country, date;
+        std::string previousId = "";
         while (std::getline(fastaFile, textFile)) {
             if (textFile[0] == '>') {
                 std::vector<std::string> splittedString = splitString(textFile, '|');
@@ -46,18 +48,27 @@ int main(int argc, char *argv[]) {
                     continue;
                 }
                 isHuman = true;
+                protein = splittedString[0].substr(1);
                 date = splittedString[2];
+                id = splittedString[3];
                 country = splitString(splittedString[1], '/')[1];
                 if (std::find(countries.begin(), countries.end(), country) == countries.end()) {
                     countries.push_back(country);
                 }
                 header = textFile;
             } else {
+                if (textFile == "") continue;
                 if (!isHuman) {
                     continue;
                 }
                 sequence = textFile;
-                count[date.substr(0, date.find_last_of('-'))][country] += 1;
+                if (id != previousId) {
+                    count[date.substr(0, date.find_last_of('-'))][country] += 1;
+                    previousId = id;
+                }
+                std::ofstream outProteinFastaFile("Proteins/" + protein + ".fasta", std::ios_base::app);
+                outProteinFastaFile << header << '\n';
+                outProteinFastaFile << sequence << '\n';
                 std::ofstream outCountryFastaFile("Countries/" + country + ".fasta", std::ios_base::app);
                 outCountryFastaFile << header << '\n';
                 outCountryFastaFile << sequence << '\n';
