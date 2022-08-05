@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <regex>
 #include <filesystem>
 #include <map>
 
@@ -30,34 +31,43 @@ int main(int argc, char *argv[]) {
         std::cerr << program;
         std::exit(1);
     }
-    std::ifstream fastaFile(program.get<std::string>("fastafile"));
     std::string textFile;
+    std::ifstream fastaFile(program.get<std::string>("fastafile"));
     std::map<std::string, std::map<std::string, int>> count;
     std::vector<std::string> countries;
     std::filesystem::create_directory("Countries");
     std::filesystem::create_directory("Proteins");
     if (fastaFile.is_open()) {
+        std::cout << "Extracting Information..." << std::endl;
         bool isHuman = true;
         std::string header, protein, id, sequence, country, date;
         std::string previousId = "";
+        std::regex epiRegex("EPI_[A-Z0-9_]+");
+        std::regex dateRegex(R"(20\d{2}-\d{2}-\d{2})");
         while (std::getline(fastaFile, textFile)) {
             if (textFile[0] == '>') {
                 std::vector<std::string> splittedString = splitString(textFile, '|');
-                if (splittedString[6] != "Human" || splitString(splittedString[2], '-')[1] == "00") {
-                    isHuman = false;
-                    continue;
+                splittedString.resize(11);
+                if (!splittedString[6].empty()) {
+                    if (splittedString[6] != "Human" || splitString(splittedString[2], '-')[1] == "00") {
+                        isHuman = false;
+                        continue;
+                    }
                 }
                 isHuman = true;
                 protein = splittedString[0].substr(1);
-                date = splittedString[2];
-                id = splittedString[3];
+                std::smatch m;
+                std::regex_search(textFile, m, epiRegex);
+                id = m[0];
+                std::regex_search(textFile, m, dateRegex);
+                date = m[0];
                 country = splitString(splittedString[1], '/')[1];
                 if (std::find(countries.begin(), countries.end(), country) == countries.end()) {
                     countries.push_back(country);
                 }
                 header = textFile;
             } else {
-                if (textFile == "") continue;
+                if (textFile.empty()) continue;
                 if (!isHuman) {
                     continue;
                 }
@@ -77,6 +87,7 @@ int main(int argc, char *argv[]) {
     } else {
         throw std::invalid_argument("File doesn't exist or access is denied. Please check your input.");
     }
+    std::cout << "Creating CSV..." << std::endl;
     std::ofstream outCount("gisaid_monthly.csv");
     // Write headers
     for (auto const &[key, val]: count) {
@@ -97,5 +108,6 @@ int main(int argc, char *argv[]) {
         }
         outCount << '\n';
     }
+    std::cout << "Finished!" << std::endl;
     return 0;
 }
